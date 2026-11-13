@@ -370,6 +370,33 @@ class Rollup:
         self.balances[assertion.proposer] += assertion.bond
         return assertion.status
 
+    def finalizable(self):
+        """Pending assertions whose challenge window has elapsed.
+
+        These are the assertions :meth:`finalize` will accept right now --
+        a natural helper for an operator sweeping the rollup for work to do.
+
+        >>> rollup = Rollup(challenge_window=5)
+        >>> rollup.fund("alice", 500)
+        >>> prog = [("add", 1)]
+        >>> a = rollup.post_assertion("alice", prog, (0, 0), trace_roots(prog)[-1])
+        >>> rollup.finalizable()
+        []
+        >>> rollup.advance(5)
+        >>> rollup.finalizable() == [a]
+        True
+        >>> rollup.finalize(a)
+        'finalized'
+        >>> rollup.finalizable()
+        []
+        """
+        deadline = self.block
+        return [
+            a for a in self.assertions
+            if a.status == "pending"
+            and a.posted_at + a.challenge_window <= deadline
+        ]
+
 
 def _demo():
     """Run the headline scenario and print what happened."""
